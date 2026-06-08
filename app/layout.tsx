@@ -5,7 +5,7 @@ export const metadata = {
   description: 'Search stocks and get instant insights',
 }
 
-export default function RootLayout({ children }) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body className="bg-gray-950 text-white">
