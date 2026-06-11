@@ -7,18 +7,29 @@ import { useRouter } from 'next/navigation'
 export default function WatchlistPage() {
   const [watchlist, setWatchlist] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState<any>(null)
   const router = useRouter()
 
   useEffect(() => {
-    const fetchWatchlist = async () => {
-      const { data, error } = await supabase
+    const fetchData = async () => {
+      const { data } = await supabase.auth.getSession()
+      const currentUser = data.session?.user || null
+      setUser(currentUser)
+
+      if (!currentUser) {
+        router.push('/login')
+        return
+      }
+
+      const { data: watchlistData, error } = await supabase
         .from('watchlist')
         .select('*')
-        .eq('user_id', 'guest')
-      if (!error) setWatchlist(data || [])
+        .eq('user_id', currentUser.id)
+
+      if (!error) setWatchlist(watchlistData || [])
       setLoading(false)
     }
-    fetchWatchlist()
+    fetchData()
   }, [])
 
   const removeFromWatchlist = async (id: number) => {
@@ -34,8 +45,18 @@ export default function WatchlistPage() {
     <div style={{minHeight:'100vh',backgroundColor:'#030712',color:'white',padding:'2rem',fontFamily:'sans-serif'}}>
       <div style={{maxWidth:'700px',margin:'0 auto'}}>
 
-        <h1 style={{fontSize:'2rem',fontWeight:'bold',marginBottom:'0.25rem'}}>My Watchlist</h1>
-        <p style={{color:'#6b7280',marginBottom:'2rem'}}>Stocks you're tracking</p>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'0.25rem'}}>
+          <h1 style={{fontSize:'2rem',fontWeight:'bold',margin:0}}>My Watchlist</h1>
+          <button
+            onClick={async () => { await supabase.auth.signOut(); router.push('/') }}
+            style={{padding:'0.4rem 1rem',backgroundColor:'#7f1d1d',color:'#fca5a5',border:'none',borderRadius:'8px',cursor:'pointer',fontWeight:'600'}}
+          >
+            Sign Out
+          </button>
+        </div>
+        <p style={{color:'#6b7280',marginBottom:'2rem'}}>
+          {user?.email} · Stocks you're tracking
+        </p>
 
         {watchlist.length === 0 ? (
           <div style={{backgroundColor:'#111827',borderRadius:'12px',padding:'2rem',textAlign:'center',color:'#6b7280'}}>
@@ -48,10 +69,7 @@ export default function WatchlistPage() {
                 key={item.id}
                 style={{backgroundColor:'#111827',borderRadius:'12px',padding:'1rem 1.5rem',display:'flex',justifyContent:'space-between',alignItems:'center'}}
               >
-                <div
-                  onClick={() => router.push(`/stock/${item.ticker}`)}
-                  style={{cursor:'pointer'}}
-                >
+                <div onClick={() => router.push(`/stock/${item.ticker}`)} style={{cursor:'pointer'}}>
                   <p style={{fontWeight:'700',fontSize:'1.1rem',margin:0}}>{item.ticker}</p>
                   <p style={{color:'#9ca3af',fontSize:'0.875rem',margin:0}}>{item.company_name}</p>
                 </div>
