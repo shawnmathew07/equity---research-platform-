@@ -14,6 +14,7 @@ export default function StockPage() {
   const [loading, setLoading] = useState(true)
   const [watchlistMsg, setWatchlistMsg] = useState('')
   const [user, setUser] = useState<any>(null)
+  const [metrics, setMetrics] = useState<any>(null)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -24,15 +25,18 @@ export default function StockPage() {
       const to = Math.floor(Date.now() / 1000)
       const from = to - 30 * 24 * 60 * 60
 
-      const [quoteRes, profileRes, candleRes] = await Promise.all([
+      const [quoteRes, profileRes, candleRes, metricRes] = await Promise.all([
         fetch(`https://finnhub.io/api/v1/quote?symbol=${ticker}&token=${apiKey}`),
         fetch(`https://finnhub.io/api/v1/stock/profile2?symbol=${ticker}&token=${apiKey}`),
-        fetch(`https://finnhub.io/api/v1/stock/candle?symbol=${ticker}&resolution=D&from=${from}&to=${to}&token=${apiKey}`)
+        fetch(`https://finnhub.io/api/v1/stock/candle?symbol=${ticker}&resolution=D&from=${from}&to=${to}&token=${apiKey}`),
+        fetch(`https://finnhub.io/api/v1/stock/metric?symbol=${ticker}&metric=all&token=${apiKey}`)
       ])
 
       const quoteData = await quoteRes.json()
       const profileData = await profileRes.json()
       const candleData = await candleRes.json()
+      const metricData = await metricRes.json()
+      setMetrics(metricData.metric || null)
 
       console.log('Candle data:', candleData)
 
@@ -138,6 +142,36 @@ export default function StockPage() {
             <p style={{margin:0,fontWeight:'500'}}>{(profile?.shareOutstanding || 0).toLocaleString()}M</p>
           </div>
         </div>
+
+        {/* Key Financial Metrics */}
+        {metrics && (
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'1rem',backgroundColor:'#111827',borderRadius:'12px',padding:'1.5rem',marginTop:'1rem'}}>
+            <div>
+              <p style={{color:'#6b7280',fontSize:'0.8rem',margin:'0 0 0.25rem 0'}}>52-Week High</p>
+              <p style={{margin:0,fontWeight:'500',color:'#4ade80'}}>${metrics['52WeekHigh']?.toFixed(2) || 'N/A'}</p>
+            </div>
+            <div>
+              <p style={{color:'#6b7280',fontSize:'0.8rem',margin:'0 0 0.25rem 0'}}>52-Week Low</p>
+              <p style={{margin:0,fontWeight:'500',color:'#f87171'}}>${metrics['52WeekLow']?.toFixed(2) || 'N/A'}</p>
+            </div>
+            <div>
+              <p style={{color:'#6b7280',fontSize:'0.8rem',margin:'0 0 0.25rem 0'}}>P/E Ratio</p>
+              <p style={{margin:0,fontWeight:'500'}}>{metrics['peNormalizedAnnual']?.toFixed(2) || 'N/A'}</p>
+            </div>
+            <div>
+              <p style={{color:'#6b7280',fontSize:'0.8rem',margin:'0 0 0.25rem 0'}}>EPS</p>
+              <p style={{margin:0,fontWeight:'500'}}>${metrics['epsNormalizedAnnual']?.toFixed(2) || 'N/A'}</p>
+            </div>
+            <div>
+              <p style={{color:'#6b7280',fontSize:'0.8rem',margin:'0 0 0.25rem 0'}}>Beta</p>
+              <p style={{margin:0,fontWeight:'500'}}>{metrics['beta']?.toFixed(2) || 'N/A'}</p>
+            </div>
+            <div>
+              <p style={{color:'#6b7280',fontSize:'0.8rem',margin:'0 0 0.25rem 0'}}>Dividend Yield</p>
+              <p style={{margin:0,fontWeight:'500'}}>{metrics['dividendYieldIndicatedAnnual']?.toFixed(2) || 'N/A'}%</p>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>
