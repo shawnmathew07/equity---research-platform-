@@ -1,4 +1,5 @@
 import './globals.css'
+import Navbar from './components/Navbar'
 
 export const metadata = {
   title: 'Equity Research Platform',
@@ -8,7 +9,8 @@ export const metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="bg-gray-950 text-white">
+      <body style={{margin:0, backgroundColor:'#030712'}}>
+        <Navbar />
         {children}
       </body>
     </html>
