@@ -39,6 +39,12 @@ export default function Navbar() {
           Screener
         </span>
         <span
+          onClick={() => router.push('/dcf')}
+          style={{color:'#9ca3af',cursor:'pointer',fontSize:'0.9rem'}}
+        >
+          DCF
+        </span>
+        <span
           onClick={() => router.push('/watchlist')}
           style={{color:'#9ca3af',cursor:'pointer',fontSize:'0.9rem'}}
         >

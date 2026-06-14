@@ -13,6 +13,8 @@ export default function StockPage() {
   const [chartData, setChartData] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [watchlistMsg, setWatchlistMsg] = useState('')
+  const [aiSummary, setAiSummary] = useState('')
+  const [aiLoading, setAiLoading] = useState(false)
   const [user, setUser] = useState<any>(null)
   const [metrics, setMetrics] = useState<any>(null)
 
@@ -36,12 +38,10 @@ export default function StockPage() {
       const profileData = await profileRes.json()
       const candleData = await candleRes.json()
       const metricData = await metricRes.json()
-      setMetrics(metricData.metric || null)
-
-      console.log('Candle data:', candleData)
 
       setQuote(quoteData)
       setProfile(profileData)
+      setMetrics(metricData.metric || null)
 
       if (candleData.s === 'ok' && candleData.t) {
         const formatted = candleData.t.map((timestamp: number, i: number) => ({
@@ -50,7 +50,6 @@ export default function StockPage() {
         }))
         setChartData(formatted)
       } else {
-        // Generate dummy chart from current price for visual demo
         const basePrice = quoteData?.pc || 100
         const dummy = Array.from({ length: 30 }, (_, i) => ({
           date: new Date(Date.now() - (29 - i) * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
@@ -72,6 +71,30 @@ export default function StockPage() {
       company_name: profile?.name || ticker,
     }])
     setWatchlistMsg(error ? '❌ Error: ' + error.message : '✅ Added to watchlist!')
+  }
+
+  const generateSummary = async () => {
+    setAiLoading(true)
+    const res = await fetch('/api/ai-summary', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ticker,
+        name: profile?.name,
+        price: quote?.c?.toFixed(2),
+        change: quote?.dp?.toFixed(2),
+        industry: profile?.finnhubIndustry,
+        marketCap: ((profile?.marketCapitalization || 0) * 1e6).toLocaleString(),
+        pe: metrics?.peNormalizedAnnual?.toFixed(2),
+        eps: metrics?.epsNormalizedAnnual?.toFixed(2),
+        beta: metrics?.beta?.toFixed(2),
+        high52: metrics?.['52WeekHigh']?.toFixed(2),
+        low52: metrics?.['52WeekLow']?.toFixed(2),
+      })
+    })
+    const data = await res.json()
+    setAiSummary(data.summary)
+    setAiLoading(false)
   }
 
   if (loading) return <div style={{color:'white',padding:'2rem'}}>Loading...</div>
@@ -103,15 +126,32 @@ export default function StockPage() {
             <LineChart data={chartData}>
               <XAxis dataKey="date" tick={{fill:'#6b7280',fontSize:11}} tickLine={false} axisLine={false} interval={4} />
               <YAxis tick={{fill:'#6b7280',fontSize:11}} tickLine={false} axisLine={false} domain={['auto','auto']} tickFormatter={(v) => `$${v}`} />
-              <Tooltip
-                contentStyle={{backgroundColor:'#1f2937',border:'none',borderRadius:'8px',color:'white'}}
-                formatter={(value: any) => [`$${value}`, 'Price']}
-              />
+              <Tooltip contentStyle={{backgroundColor:'#1f2937',border:'none',borderRadius:'8px',color:'white'}} formatter={(value: any) => [`$${value}`, 'Price']} />
               <Line type="monotone" dataKey="price" stroke={isPositive ? '#4ade80' : '#f87171'} strokeWidth={2} dot={false} />
             </LineChart>
           </ResponsiveContainer>
         </div>
 
+        {/* AI Summary */}
+        <div style={{backgroundColor:'#111827',borderRadius:'12px',padding:'1.5rem',marginBottom:'1.5rem'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'0.75rem'}}>
+            <p style={{color:'#9ca3af',fontSize:'0.85rem',margin:0}}>🤖 AI Equity Summary</p>
+            <button
+              onClick={generateSummary}
+              disabled={aiLoading}
+              style={{padding:'0.4rem 1rem',backgroundColor:'#7c3aed',color:'white',border:'none',borderRadius:'8px',cursor:'pointer',fontWeight:'600',fontSize:'0.85rem'}}
+            >
+              {aiLoading ? 'Generating...' : 'Generate Summary'}
+            </button>
+          </div>
+          {aiSummary ? (
+            <p style={{color:'#e5e7eb',lineHeight:'1.7',margin:0}}>{aiSummary}</p>
+          ) : (
+            <p style={{color:'#4b5563',margin:0,fontSize:'0.9rem'}}>Click "Generate Summary" to get an AI-powered equity research note for this stock.</p>
+          )}
+        </div>
+
+        {/* Watchlist Button */}
         <button
           onClick={addToWatchlist}
           style={{padding:'0.6rem 1.5rem',backgroundColor:'#2563eb',color:'white',border:'none',borderRadius:'8px',fontWeight:'600',cursor:'pointer',fontSize:'1rem',marginBottom:'0.75rem'}}
@@ -124,6 +164,7 @@ export default function StockPage() {
           </p>
         )}
 
+        {/* Company Info Grid */}
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'1rem',backgroundColor:'#111827',borderRadius:'12px',padding:'1.5rem'}}>
           <div>
             <p style={{color:'#6b7280',fontSize:'0.8rem',margin:'0 0 0.25rem 0'}}>Industry</p>
