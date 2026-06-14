@@ -31,12 +31,20 @@ export default function Navbar() {
         >
           Search
         </span>
+        
+        <span
+          onClick={() => router.push('/screener')}
+          style={{color:'#9ca3af',cursor:'pointer',fontSize:'0.9rem'}}
+        >
+          Screener
+        </span>
         <span
           onClick={() => router.push('/watchlist')}
           style={{color:'#9ca3af',cursor:'pointer',fontSize:'0.9rem'}}
         >
           Watchlist
         </span>
+      
         {user ? (
           <button
             onClick={async () => { await supabase.auth.signOut(); setUser(null); router.push('/') }}
